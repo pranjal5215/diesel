@@ -21,6 +21,8 @@ ERROR_MESSAGES = [
 
 class MemCacheError(Exception): pass
 
+class MemCacheNotFoundError(Exception): pass
+
 class MemcacheClient(Client):
     def __init__(self, host='localhost', port=MEMCACHE_PORT, password=None, **kw):
         self.password = password
@@ -36,7 +38,9 @@ class MemcacheClient(Client):
         send('%s %s\r\n'%(cmd, args[0]))
 
     def _handle_value(self, data):
-        # data = ['mykey' ,'0', '12']
+        '''Handle function status for successful response for get key.
+        data_size for the size of response i.e value of the key.
+        '''
         data_size = int(data[-1])
         resp = receive(data_size)
         until_eol() # noop
@@ -46,6 +50,9 @@ class MemcacheClient(Client):
         return None
 
     def _get_response(self):
+        '''Identifies whether call status from memcache socket protocol 
+        response. Always return response calling _handle_`status` function
+        '''
         fl = until_eol().strip()
         resp_list = fl.split(' ')
         status = resp_list[0]
@@ -57,4 +64,6 @@ class MemcacheClient(Client):
             if hasattr(self, '_handle_%s'%status.lower()):
                 return getattr(self, '_handle_%s'%status.lower())(
                     resp_list[1:])
+        else:
+            raise MemCacheNotFoundError(e_message)
 
