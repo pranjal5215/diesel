@@ -42,6 +42,9 @@ class MemcacheClient(Client):
         until_eol() # noop
         return resp
 
+    def _handle_end(self, data):
+        return None
+
     def _get_response(self):
         fl = until_eol().strip()
         resp_list = fl.split(' ')
