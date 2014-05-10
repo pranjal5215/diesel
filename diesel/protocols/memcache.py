@@ -23,7 +23,7 @@ class MemCacheError(Exception): pass
 
 class MemCacheNotFoundError(Exception): pass
 
-class MemcacheClient(Client):
+class MemCacheClient(Client):
     def __init__(self, host='localhost', port=MEMCACHE_PORT, password=None, **kw):
         self.password = password
         Client.__init__(self, host, port, **kw)
