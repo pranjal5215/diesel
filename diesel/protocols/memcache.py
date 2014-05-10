@@ -29,25 +29,47 @@ class MemCacheClient(Client):
         Client.__init__(self, host, port, **kw)
 
     @call
-    def get(self, k):
-        self._send('get', k)
-        resp = self._get_response()
-        return resp
+    def get(self, key):
+        key_cmd = 'get'
+        mem_cmd = '%s %s\r\n'%(key_cmd, key)
+        send(mem_cmd)
+        # key and corresponding value from memcache
+        #resp_value can be None if key not found or k,v tuple
+        resp_value = self._get_response()
+        v = None
+        if resp_value:
+            k, v = resp_value
+        return v
 
-    def _send(self, cmd, *args, **kwargs):
-        send('%s %s\r\n'%(cmd, args[0]))
+    @call
+    def get_multi(self, keys):
+        mem_cmd = '\r\n'
+        for key in keys:
+            mem_cmd = 'get %s %s'%(key ,mem_cmd)
+        send(mem_cmd)
+        resp_dict = {}
+        for key in keys:
+            # key and corresponding value from memcache
+            resp_value = self._get_response()
+            #resp_value can be None if key not found or k,v tuple
+            if resp_value:
+                k, v = resp_value
+                resp_dict[k] = v
+        return resp_dict
 
     def _handle_value(self, data):
         '''Handle function status for successful response for get key.
         data_size for the size of response i.e value of the key.
         '''
         data_size = int(data[-1])
+        key = data[0]
         resp = receive(data_size)
         until_eol() # noop
-        return resp
+        return key, resp
 
     def _handle_end(self, data):
-        return None
+        # Return memcache 'END' command.
+        return 'END'
 
     def _get_response(self):
         '''Identifies whether call status from memcache socket protocol 
@@ -62,8 +84,11 @@ class MemCacheClient(Client):
             raise MemCacheError(e_message)
         elif status in STATUS_MESSAGES:
             if hasattr(self, '_handle_%s'%status.lower()):
-                return getattr(self, '_handle_%s'%status.lower())(
+                handle_resp = getattr(self, '_handle_%s'%status.lower())(
                     resp_list[1:])
+                if handle_resp == 'END':
+                    handle_resp = self._get_response()
+                return handle_resp
         else:
             raise MemCacheNotFoundError(e_message)
 
