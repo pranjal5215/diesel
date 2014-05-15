@@ -1,4 +1,10 @@
-from diesel import Client, send, receive, until_eol, first, call
+from diesel import Client
+from diesel import send
+from diesel import receive
+from diesel import until
+from diesel import until_eol
+from diesel import first
+from diesel import call
 
 MEMCACHE_PORT = 11211
 
@@ -36,6 +42,7 @@ class MemCacheClient(Client):
         # key and corresponding value from memcache
         #resp_value can be None if key not found or k,v tuple
         resp_value = self._get_response()
+        until_eol()
         v = None
         if resp_value:
             k, v = resp_value
@@ -48,13 +55,15 @@ class MemCacheClient(Client):
             mem_cmd = 'get %s %s'%(key ,mem_cmd)
         send(mem_cmd)
         resp_dict = {}
-        for key in keys:
+        resp_value = 1
+        while resp_value:
             # key and corresponding value from memcache
             resp_value = self._get_response()
             #resp_value can be None if key not found or k,v tuple
             if resp_value:
                 k, v = resp_value
                 resp_dict[k] = v
+        #until_eol()
         return resp_dict
 
     def _handle_value(self, data):
@@ -69,7 +78,8 @@ class MemCacheClient(Client):
 
     def _handle_end(self, data):
         # Return memcache 'END' command.
-        return 'END'
+        #until_eol() # noop
+        return None
 
     def _get_response(self):
         '''Identifies whether call status from memcache socket protocol 
@@ -84,11 +94,8 @@ class MemCacheClient(Client):
             raise MemCacheError(e_message)
         elif status in STATUS_MESSAGES:
             if hasattr(self, '_handle_%s'%status.lower()):
-                handle_resp = getattr(self, '_handle_%s'%status.lower())(
+                return getattr(self, '_handle_%s'%status.lower())(
                     resp_list[1:])
-                if handle_resp == 'END':
-                    handle_resp = self._get_response()
-                return handle_resp
         else:
             raise MemCacheNotFoundError(e_message)
 

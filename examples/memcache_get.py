@@ -6,9 +6,11 @@ from diesel.protocols.memcache import MemCacheClient
 from diesel.protocols import http
 
 def mem_get_client(addr):
+    single_value = ''
+    multi_value = ''
     # default to 127.0.0.1:11211
     m = MemCacheClient('localhost')
-    single_value = m.get('mykey')
+    single_value = m.get('mykeynew')
     multi_value = m.get_multi(['mykey', 'multikey', 'storedkey'])
     return http.Response("Value from single get : %s\nValue from \
         multi get : %s  "%(str(single_value), str(multi_value)))
