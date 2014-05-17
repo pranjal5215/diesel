@@ -32,6 +32,10 @@ class MemCacheClient(Client):
     def get(self, k):
         self._send('get', k)
         resp = self._get_response()
+        if resp:
+            # Only if we have received a valid response 
+            # for the key fetch last from socket.
+            self._get_response()
         return resp
 
     def _send(self, cmd, *args, **kwargs):
@@ -43,7 +47,8 @@ class MemCacheClient(Client):
         '''
         data_size = int(data[-1])
         resp = receive(data_size)
-        until_eol() # noop
+        # After value is received fetch \r\n.
+        until_eol()
         return resp
 
     def _handle_end(self, data):
@@ -65,5 +70,6 @@ class MemCacheClient(Client):
                 return getattr(self, '_handle_%s'%status.lower())(
                     resp_list[1:])
         else:
+            e_message = 'UNKNOWN ERROR'
             raise MemCacheNotFoundError(e_message)
 
