@@ -30,26 +30,42 @@ class MemCacheClient(Client):
 
     @call
     def get(self, k):
-        self._send('get', k)
+        send('get %s\r\n'%str(k))
         resp = self._get_response()
+        value = None
         if resp:
+            key ,value = resp
             # Only if we have received a valid response 
             # for the key fetch last from socket.
             self._get_response()
-        return resp
+        return value
 
-    def _send(self, cmd, *args, **kwargs):
-        send('%s %s\r\n'%(cmd, args[0]))
+    @call
+    def get_multi(self, list_keys):
+        cmd = 'get'
+        for key in list_keys:
+            cmd = '%s %s'%(cmd, key)
+        cmd = '%s\r\n'%cmd
+        send(cmd)
+        resp = 1
+        resp_dict = {}
+        while resp:
+            resp = self._get_response()
+            if resp:
+                key ,value = resp
+                resp_dict[key] = value
+        return resp_dict
 
     def _handle_value(self, data):
         '''Handle function status for successful response for get key.
         data_size for the size of response i.e value of the key.
         '''
+        key = data[0]
         data_size = int(data[-1])
-        resp = receive(data_size)
+        value = receive(data_size)
         # After value is received fetch \r\n.
         until_eol()
-        return resp
+        return key, value
 
     def _handle_end(self, data):
         return None
@@ -63,8 +79,7 @@ class MemCacheClient(Client):
         status = resp_list[0]
         if status in ERROR_MESSAGES:
             # Error has occured
-            e_message = fl[1:]
-            raise MemCacheError(e_message)
+            raise MemCacheError(status)
         elif status in STATUS_MESSAGES:
             if hasattr(self, '_handle_%s'%status.lower()):
                 return getattr(self, '_handle_%s'%status.lower())(
