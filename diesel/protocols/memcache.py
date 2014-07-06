@@ -36,7 +36,7 @@ class MemCacheClient(Client):
         if resp:
             key ,value = resp
             # Only if we have received a valid response 
-            # for the key fetch last from socket.
+            # for the last key fetch from socket.
             self._get_response()
         return value
 

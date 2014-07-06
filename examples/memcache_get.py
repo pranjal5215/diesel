@@ -16,5 +16,5 @@ def delay_echo_server(addr):
     #return http.Response("value from memcache key : %s key1 : %s and key 2 : %s"%(str(value), str(value1), str(value2)))
 
 app = Application()
-app.add_service(Service(http.HttpServer(delay_echo_server), 8003))
+app.add_service(Service(http.HttpServer(delay_echo_server), 8000))
 app.run()
